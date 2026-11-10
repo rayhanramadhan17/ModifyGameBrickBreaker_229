@@ -697,3 +697,164 @@ class Game(tk.Frame):
 
         self.keys.discard(key)
 
+    # =====================================
+    # COLLISION DETECTION
+    # =====================================
+
+    def check_collisions(self):
+
+        ball_coords = self.ball.get_position()
+
+        # Paddle collision
+        paddle_coords = self.paddle.get_position()
+
+        if (
+            ball_coords[2] >= paddle_coords[0]
+            and ball_coords[0] <= paddle_coords[2]
+            and ball_coords[3] >= paddle_coords[1]
+            and ball_coords[1] <= paddle_coords[3]
+            and self.ball.speed_y > 0
+        ):
+
+            self.ball.speed_y = -abs(self.ball.speed_y)
+
+            ball_center = (
+                ball_coords[0] + ball_coords[2]
+            ) / 2
+
+            paddle_center = (
+                paddle_coords[0] + paddle_coords[2]
+            ) / 2
+
+            self.ball.speed_x = (
+                ball_center - paddle_center
+            ) / 10
+
+            self.combo = 0
+
+            self.update_hud()
+
+            self.play_sound("hit")
+
+        # Brick collision
+        for brick in self.bricks[:]:
+
+            brick_coords = brick.get_position()
+
+            if (
+                ball_coords[2] >= brick_coords[0]
+                and ball_coords[0] <= brick_coords[2]
+                and ball_coords[3] >= brick_coords[1]
+                and ball_coords[1] <= brick_coords[3]
+            ):
+
+                self.ball.reverse_y()
+
+                color = Brick.COLORS[brick.hits]
+
+                x = (
+                    brick_coords[0] + brick_coords[2]
+                ) / 2
+
+                y = (
+                    brick_coords[1] + brick_coords[3]
+                ) / 2
+
+                destroyed = brick.hit()
+
+                self.create_explosion(
+                    x, y, color
+                )
+
+                if destroyed:
+
+                    self.score += 10
+
+                    self.combo += 1
+
+                    self.play_sound("destroy")
+
+                    self.bricks.remove(brick)
+
+                else:
+
+                    self.score += 2
+
+                    self.play_sound("brick")
+
+                self.update_hud()
+
+                break
+
+    # =====================================
+    # BALL LOST
+    # =====================================
+
+    def lose_life(self):
+
+        self.lives -= 1
+
+        self.update_hud()
+
+        self.clear_ball_trail()
+
+        self.play_sound("hit")
+
+        if self.lives <= 0:
+
+            self.show_game_over()
+
+        else:
+
+            self.create_ball()
+
+            self.running = False
+
+            self.show_message(
+                "BALL LOST! PRESS SPACE",
+                "#ffa502",
+                22,
+                300
+            )
+
+    # =====================================
+    # GAME OVER
+    # =====================================
+
+    def show_game_over(self):
+
+        self.running = False
+        self.paused = False
+        self.game_over = True
+
+        self.play_sound("gameover")
+
+        self.canvas.create_rectangle(
+            150, 220,
+            650, 390,
+            fill="#202b38",
+            outline="#ff4757",
+            width=3
+        )
+
+        self.canvas.create_text(
+            400, 270,
+            text="GAME OVER",
+            fill="#ff4757",
+            font=("Arial", 32, "bold")
+        )
+
+        self.canvas.create_text(
+            400, 320,
+            text=f"FINAL SCORE: {self.score}",
+            fill="white",
+            font=("Arial", 18)
+        )
+
+        self.canvas.create_text(
+            400, 355,
+            text="PRESS R TO RESTART",
+            fill="#00ffff",
+            font=("Arial", 13, "bold")
+        )
+
